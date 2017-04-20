@@ -1,71 +1,157 @@
 'use strict';
 
-function Image(title, location){
-  this.title = title;
-  this.location = './' + location;
-  this.endCount = 0;
-  this.clickCount = 0;
-}
 
-var currentPage = [];
-var previousPage = [];
-var secondToLastpage = [];
+var app = document.getElementById('app');
+var clicksRemaining = 25;
+var photosOnSecondToLastScreen = [];
+var photosOnPreviousScreen = [];
+var photosCurrentlyOnScreen = [];
 
-// an array of photos
-var images = [
-  new Image('bag', 'img/bag.jpg'),
-  new Image('banana', 'img/banana.jpg'),
-  new Image('bathroom', 'img/bathroom.jpg'),
-  new Image('boots', 'img/boots.jpg'),
-  new Image('breakfast', 'img/breakfast.jpg'),
-  new Image('bubblegum', 'img/bubblegum.jpg'),
-  new Image('chair', 'img/chair.jpg'),
-  new Image('cthulhu', 'img/cthulhu.jpg'),
-  new Image('dog-duck', 'img/dog-duck.jpg'),
-  new Image('dragon', 'img/dragon.jpg'),
-  new Image('pen', 'img/pen.jpg'),
-  new Image('pet-sweep', 'img/pet.jpg'),
-  new Image('scissors', 'img/scissors'),
-  new Image('shark', 'img/shark.jpg'),
-  new Image('sweep', 'img/sweep.png'),
-  new Image('tauntaun', 'img/tauntaun.jpg'),
-  new Image('unicorn', 'img/unicorn.jpg'),
-  new Image('usb', 'img/usb.gif'),
-  new Image('water', 'img/water.jpg'),
-  new Image('wine-glass', 'img/wine-glass.jpg'),
+var photos = [
+  new Photo('bag', 'bag.jpg'),
+  new Photo('banana', 'banana.jpg'),
+  new Photo('bathroom', 'bathroom.jpg'),
+  new Photo('boots', 'boots.jpg'),
+  new Photo('breakfast', 'breakfast.jpg'),
+
+  new Photo('bubblegum', 'bubblegum.jpg'),
+  new Photo('chair', 'chair.jpg'),
+  new Photo('cthulhu', 'cthulhu.jpg'),
+  new Photo('dog-duck', 'dog-duck.jpg'),
+  new Photo('dragon', 'dragon.jpg'),
+
+  new Photo('pen', 'pen.jpg'),
+  new Photo('pet-sweep', 'pet-sweep.jpg'),
+  new Photo('scissors', 'scissors.jpg'),
+  new Photo('shark', 'shark.jpg'),
+  new Photo('sweep', 'sweep.png'),
+
+  new Photo('tauntaun', 'tauntaun.jpg'),
+  new Photo('unicorn', 'unicorn.jpg'),
+  new Photo('usb', 'usb.gif'),
+  new Photo('water-can', 'water-can.jpg'),
+  new Photo('wine-glass', 'wine-glass.jpg'),
 ];
 
-// random number generator
-function rng(list){
+try {
+  photos = JSON.parse(localStorage.photos);
+} catch (error) {
+  console.log('error getting local storage.');
+}
+
+renderPhotoChoices();
+
+function Photo(name, fileName) {
+  this.name = name;
+  this.src = './img/' + fileName;
+  this.clickCount = 0;
+  this.displayCount = 0;
+}
+
+function getRandomIndex(list){
   return Math.floor(Math.random() * list.length);
 }
 
-// using the rng takes the three photos and makes sure they dont repeat either on the page or on the previous page
-function threePhotos(){
+function imageClick(event) {
+  var image = event.target;
+  console.log(image);
+  var photosOnScreenIndex = image.getAttribute('photos-on-screen-index');
+  photosCurrentlyOnScreen[photosOnScreenIndex].clickCount++;
 
-  images = images.concat(secondToLastpage);
-  secondToLastpage = previousPage;
-  previousPage = currentPage;
+  clicksRemaining--;
 
-  currentPage = [];
-
-  var nextPhoto = images.splice(rng(images), 1);
-  currentPage = currentPage.concat(nextPhoto);
-  nextPhoto = images.splice(rng(images), 1);
-  currentPage = currentPage.concat(nextPhoto);
-  nextPhoto = images.splice(rng(images), 1);
-  currentPage = currentPage.concat(nextPhoto);
-
-  previousPage = images.concat(currentPage);
-  return currentPage;
+  if(clicksRemaining > 0){
+    renderPhotoChoices();
+  } else {
+    photoConcat();
+    chartDisplay();
+    try {
+      localStorage.photos = JSON.stringify(photos);
+    } catch (error) {
+      console.log('uh-oh spagetti-o');
+    }
+  }
 }
 
-// render the images to the page
-var image1 = document.getElementById(image1);
-var image2 = document.getElementById(image2);
-var image3 = document.getElementById(image3);
 
-image1 = appendChild();
 
-// click counter that stops the the page after 25 clicks
-// and the counters for how many times a specific image is clicked
+function getThreePhotos(){
+
+  photos = photos.concat(photosOnSecondToLastScreen);
+  photosOnSecondToLastScreen = photosOnPreviousScreen;
+  photosOnPreviousScreen = photosCurrentlyOnScreen;
+
+  photosCurrentlyOnScreen = [];
+
+  var nextPhoto = photos.splice(getRandomIndex(photos), 1);
+  photosCurrentlyOnScreen = photosCurrentlyOnScreen.concat(nextPhoto);
+  nextPhoto = photos.splice(getRandomIndex(photos), 1);
+  photosCurrentlyOnScreen = photosCurrentlyOnScreen.concat(nextPhoto);
+  nextPhoto = photos.splice(getRandomIndex(photos), 1);
+  photosCurrentlyOnScreen = photosCurrentlyOnScreen.concat(nextPhoto);
+
+  photosOnPreviousScreen = photos.concat(photosCurrentlyOnScreen);
+  return photosCurrentlyOnScreen;
+}
+
+
+function renderPhotoChoices() {
+  getThreePhotos();
+
+  app.textContent = '';
+
+  var imageElement;
+  for(var i = 0; i < photosCurrentlyOnScreen.length; i++){
+    imageElement = document.createElement('img');
+    imageElement.setAttribute('photos-on-screen-index',i);
+    imageElement.src = photosCurrentlyOnScreen[i].src;
+    imageElement.addEventListener('click', imageClick);
+    app.appendChild(imageElement);
+  }
+}
+
+function photoConcat(){
+  photos = photos.concat(photosCurrentlyOnScreen);
+  photos = photos.concat(photosOnPreviousScreen);
+  photos = photos.concat(photosOnSecondToLastScreen);
+}
+
+function chartDisplay(){
+  var ctx = document.getElementById("chart-controller");
+  var myChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+      datasets: [{
+        label: '# of Votes',
+        data: [12, 19, 3, 5, 2, 3],
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.2)',
+          'rgba(54, 162, 235, 0.2)',
+          'rgba(255, 206, 86, 0.2)',
+          'rgba(75, 192, 192, 0.2)',
+          'rgba(153, 102, 255, 0.2)',
+          'rgba(255, 159, 64, 0.2)'
+        ],
+        borderColor: [
+          'rgba(255,99,132,1)',
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(75, 192, 192, 1)',
+          'rgba(153, 102, 255, 1)',
+          'rgba(255, 159, 64, 1)'
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: {
+        yAxes: [{
+          ticks: {
+            beginAtZero:true
+          }
+        }]
+      }
+    }
+  });
+}
