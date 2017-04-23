@@ -7,5 +7,14 @@
 
 html, body {
   height: 100%;
+}
 
+body {
+  background-color: black;
+  color; white;
+}
+
+.image-box {
+  height: 500px;
+  width: 1000px;
 }
